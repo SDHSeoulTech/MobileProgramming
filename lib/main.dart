@@ -71,7 +71,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  int currentPage = 1;
   List<DrugItem> data = [];
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -80,14 +82,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> fetchData() async {
+    setState(() {
+      isLoading = true;
+    });
     try {
-      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=1&numOfRows=10&entpName=&itemName=&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
+      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=$currentPage&numOfRows=5&entpName=&itemName=&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
 
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final document = xml.XmlDocument.parse(response.body);
-        print(document);
         // 'item' 엘리먼트들을 찾음
         final items = document.findAllElements('item');
 
@@ -97,14 +101,42 @@ class _MyHomePageState extends State<MyHomePage> {
           data.add(drugItem);
         }
 
-        setState(() {});
+        setState(() {
+          isLoading = false;
+        });
       } else {
         print('Failed to load data - ${response.statusCode}');
+        setState(() {
+          isLoading = false;
+        });
       }
     } catch (error) {
       print('Error fetching data: $error');
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+
+  //다음 페이지로 이동하는 함수
+  void nextPage() {
+    if (!isLoading) {
+      currentPage++;
+      data.clear();
+      fetchData();
+    }
+  }
+
+
+  // 이전 페이지로 이동하는 함수
+  void previousPage() {
+    if (!isLoading && currentPage > 1) {
+      currentPage--;
+      data.clear();
+      fetchData();
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -113,18 +145,56 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text('Flutter XML API Example'),
       ),
       body: Center(
-        child: data.isEmpty
+        child: isLoading
             ? CircularProgressIndicator()
             : ListView.builder(
-          itemCount: data.length,
-          itemBuilder: (context, index) {
-            final item = data[index];
-            return ListTile(
-              title: Text('약품명: ${item.itemName}'),
-              subtitle: Text('제조사: ${item.entpName}\n효능: ${item.efcyQesitm}'),
-            );
-          },
-        ),
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  final item = data[index];
+                  return Container(
+                    padding: EdgeInsets.all(16),
+                    margin: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '약품명: ${item.itemName}',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Text('제조사: ${item.entpName}'),
+                        Text('효능: ${item.efcyQesitm}'),
+                        Text('사용 방법: ${item.useMethodQesitm}'),
+                  // 추가 필요한 정보들을 원하는 대로 표시
+                      ],
+                     ),
+                    );
+                  },
+                ),
+      ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: isLoading ? null : previousPage, // 로딩 중에는 버튼 비활성화
+            tooltip: 'Previous Page',
+            child: Icon(Icons.arrow_back),
+            heroTag: 'previousPage',
+            backgroundColor: isLoading ? Colors.grey : null,
+          ),
+          SizedBox(width: 16),
+          FloatingActionButton(
+            onPressed: isLoading ? null : nextPage,  // 로딩 중에는 버튼 비활성화
+            tooltip: 'Next Page',
+            child: Icon(Icons.arrow_forward),
+            heroTag: 'nextPage',
+            backgroundColor: isLoading ? Colors.grey : null,
+          ),
+        ],
       ),
     );
   }
