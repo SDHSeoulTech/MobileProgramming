@@ -88,14 +88,13 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=$currentPage&numOfRows=5&entpName=&itemName=&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
 
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final document = xml.XmlDocument.parse(response.body);
-        // 'item' 엘리먼트들을 찾음
+
         final items = document.findAllElements('item');
 
-        // 각 'item'에 대한 정보를 추출하여 리스트에 추가
         for (final itemElement in items) {
           final drugItem = DrugItem.fromXml(itemElement);
           data.add(drugItem);
@@ -106,19 +105,26 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       } else {
         print('Failed to load data - ${response.statusCode}');
-        setState(() {
-          isLoading = false;
-        });
+        // Connection timed out이면 재시도
+        if (response.statusCode == 504) {
+          print('Retrying after a delay...');
+          await Future.delayed(Duration(seconds: 5));
+          await fetchData();
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+        }
       }
     } catch (error) {
       print('Error fetching data: $error');
-      setState(() {
-        isLoading = false;
-      });
+      // 에러가 발생했을 때도 재시도
+      print('Retrying after a delay...');
+      await Future.delayed(Duration(seconds: 5));
+      await fetchData();
     }
   }
 
-  //다음 페이지로 이동하는 함수
   void nextPage() {
     if (!isLoading) {
       currentPage++;
@@ -127,8 +133,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-
-  // 이전 페이지로 이동하는 함수
   void previousPage() {
     if (!isLoading && currentPage > 1) {
       currentPage--;
