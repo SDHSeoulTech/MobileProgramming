@@ -94,6 +94,8 @@ class _MyHomePageState extends State<MyHomePage> {
   int currentPage = 1;
   List<DrugItem> data = [];
   bool isLoading = false;
+  TextEditingController searchController = TextEditingController();
+  String searchText = "";
 
   @override
   void initState() {
@@ -106,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
       isLoading = true;
     });
     try {
-      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=$currentPage&numOfRows=5&entpName=&itemName=&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
+      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=$currentPage&numOfRows=5&entpName=&itemName=$searchText&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
 
       final response = await http.get(Uri.parse(url)).timeout(Duration(seconds: 10));
 
@@ -168,7 +170,42 @@ class _MyHomePageState extends State<MyHomePage> {
     final selectedDrugsModel = context.watch<SelectedDrugsModel>(); // 모델 읽어오기
     return Scaffold(
       appBar: AppBar(
-        title: Text('Flutter XML API Example'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: '약품명으로 검색',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      searchController.clear();
+                      searchText = "";
+                      data.clear();
+                      currentPage = 1;
+                      fetchData();
+                    });
+                  },
+                  icon: Icon(Icons.clear),
+                )
+              ),
+            )
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                searchText = searchController.text;
+                data.clear();
+                currentPage = 1;
+                fetchData();
+              });
+            },
+            icon: Icon(Icons.search),
+          ),
+        ],
       ),
       body: Center(
         child: isLoading
