@@ -2,8 +2,24 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
+import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
+
+class SelectedDrugsModel extends ChangeNotifier {
+  List<DrugItem> selectedDrugs = [];
+
+  void toggleSelection(DrugItem item) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index == -1) {
+      selectedDrugs.add(item);
+    } else {
+      selectedDrugs.removeAt(index);
+    }
+
+    notifyListeners(); // 변경 사항을 구독자에게 알림
+  }
+}
 
 class DrugItem {
   final String entpName;
@@ -19,6 +35,7 @@ class DrugItem {
   final String updateDe;
   final String itemImage;
   final String bizrno;
+  bool isSelected = false;
 
   DrugItem({
     required this.entpName,
@@ -58,9 +75,12 @@ class DrugItem {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter XML API Example',
-      home: MyHomePage(),
+    return ChangeNotifierProvider(
+      create: (context) => SelectedDrugsModel(), // SelectedDrugsModel을 프로바이더로 등록
+      child: MaterialApp(
+        title: 'Flutter XML API Example',
+        home: MyHomePage(),
+      ),
     );
   }
 }
@@ -144,6 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedDrugsModel = context.watch<SelectedDrugsModel>(); // 모델 읽어오기
     return Scaffold(
       appBar: AppBar(
         title: Text('Flutter XML API Example'),
@@ -174,6 +195,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         Text('효능: ${item.efcyQesitm}'),
                         Text('사용 방법: ${item.useMethodQesitm}'),
                   // 추가 필요한 정보들을 원하는 대로 표시
+                        //선택된 약품 여부에 따라 UI 업데이트
+                        Text('선택 여부: ${selectedDrugsModel.selectedDrugs.contains(item)}'),
+                        ElevatedButton(
+                          onPressed: () {
+                            selectedDrugsModel.toggleSelection(item);
+                          },
+                          child: Text('약품 선택'),
+                        ),
                       ],
                      ),
                     );
