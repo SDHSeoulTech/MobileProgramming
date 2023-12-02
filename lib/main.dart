@@ -126,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         print('Failed to load data - ${response.statusCode}');
         // Connection timed out이면 재시도
-        if (response.statusCode == 504) {
+        if (response.statusCode == 504 || response.statusCode == 503) {
           print('Retrying after a delay...');
           await Future.delayed(Duration(seconds: 5));
           await fetchData();
@@ -136,8 +136,9 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         }
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       print('Error fetching data: $error');
+      print('StackTrace: $stackTrace');
       // 에러가 발생했을 때도 재시도
       print('Retrying after a delay...');
       await Future.delayed(Duration(seconds: 5));
@@ -182,6 +183,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(10),
+                      color: selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)
+                          ? Colors.blue // 선택된 경우 배경색을 파란색으로 변경
+                          : Colors.white, // 선택되지 않은 경우 배경색을 흰색으로 유지
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,12 +200,19 @@ class _MyHomePageState extends State<MyHomePage> {
                         Text('사용 방법: ${item.useMethodQesitm}'),
                   // 추가 필요한 정보들을 원하는 대로 표시
                         //선택된 약품 여부에 따라 UI 업데이트
-                        Text('선택 여부: ${selectedDrugsModel.selectedDrugs.contains(item)}'),
+                        //Text('선택 여부: ${selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)}'),
                         ElevatedButton(
                           onPressed: () {
                             selectedDrugsModel.toggleSelection(item);
                           },
-                          child: Text('약품 선택'),
+                          style: ElevatedButton.styleFrom(
+                            primary: selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)
+                                ? Colors.red // 선택된 경우 버튼 색을 빨간색으로 변경
+                                : null, // 선택되지 않은 경우 기본 버튼 색 사용
+                          ),
+                          child: Text(selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)
+                              ? '약품 해제' // 선택된 경우 버튼 텍스트를 '약품 해제'로 변경
+                              : '약품 선택'), // 선택되지 않은 경우 기본 버튼 텍스트 사용
                         ),
                       ],
                      ),
