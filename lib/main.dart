@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() => runApp(MyApp());
+String? key = dotenv.env['KEY'];
+
+void main() async {
+  await dotenv.load(fileName: 'assets/config/.env');
+  runApp(MyApp());
+}
 
 class SelectedDrugsModel extends ChangeNotifier {
   List<DrugItem> selectedDrugs = [];
@@ -108,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
       isLoading = true;
     });
     try {
-      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=QZEtVfYt%2F6%2Fb%2BR6snOu9Uer58JnlYI1i7gPkXTQYfTfqag1vgHSDTsJxWxjgnX6hTfM586vVDt3%2B600Wq94hgw%3D%3D&pageNo=$currentPage&numOfRows=5&entpName=&itemName=$searchText&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
+      final url = 'http://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList?serviceKey=$key&pageNo=$currentPage&numOfRows=5&entpName=&itemName=$searchText&itemSeq=&efcyQesitm=&useMethodQesitm=&atpnWarnQesitm=&atpnQesitm=&intrcQesitm=&seQesitm=&depositMethodQesitm=&openDe=&updateDe=&type=xml'; // API URL로 변경
 
       final response = await http.get(Uri.parse(url)).timeout(Duration(seconds: 10));
 
