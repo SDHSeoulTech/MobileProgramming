@@ -27,8 +27,8 @@ class SelectedDrugsModel extends ChangeNotifier {
     final jsonData = selectedDrugs.map((drug) => drug.toJson()).toList();
     final jsonString = json.encode(jsonData);
     await file.writeAsString(jsonString);
-    print(jsonString);
-    debugPrint('저장완로');
+    //print(jsonString);
+    //debugPrint('저장완로');
   }
 
   void _loadSelectedDrugs() async {
@@ -40,10 +40,9 @@ class SelectedDrugsModel extends ChangeNotifier {
       }
       final jsonString = await file.readAsString();
       final jsonData = json.decode(jsonString);
-      debugPrint('확인용 $jsonString');
-      //final loadedDrugs = jsonData.map((data) => DrugItem.fromJson(data)).toList() as List<DrugItem>;
-      //debugPrint('확인용2 $loadedDrugs');
-      selectedDrugs.addAll(jsonData.map((data) => DrugItem.fromJson(data)));
+      //debugPrint('확인용 $jsonString');
+      final loadedDrugs = (jsonData.toList() as List<dynamic>).map((data) => DrugItem.fromJson(data));
+      selectedDrugs.addAll(loadedDrugs);
 
       notifyListeners();
     } catch (e) {
