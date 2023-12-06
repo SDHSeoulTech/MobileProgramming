@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:path_provider/path_provider.dart';
 
 String? key = dotenv.env['KEY'];
 
@@ -15,6 +17,46 @@ void main() async {
 class SelectedDrugsModel extends ChangeNotifier {
   List<DrugItem> selectedDrugs = [];
 
+  SelectedDrugsModel() {
+    _loadSelectedDrugs();
+  }
+
+
+  void _saveSelectedDrugs() async {
+    final file = await _getLocalFile();
+    final jsonData = selectedDrugs.map((drug) => drug.toJson()).toList();
+    final jsonString = json.encode(jsonData);
+    await file.writeAsString(jsonString);
+    print(jsonString);
+    debugPrint('저장완로');
+  }
+
+  void _loadSelectedDrugs() async {
+    try {
+      final file = await _getLocalFile();
+      if (!file.existsSync()) {
+        await file.create();
+        return;
+      }
+      final jsonString = await file.readAsString();
+      final jsonData = json.decode(jsonString);
+      debugPrint('확인용 $jsonString');
+      //final loadedDrugs = jsonData.map((data) => DrugItem.fromJson(data)).toList() as List<DrugItem>;
+      //debugPrint('확인용2 $loadedDrugs');
+      selectedDrugs.addAll(jsonData.map((data) => DrugItem.fromJson(data)));
+
+      notifyListeners();
+    } catch (e) {
+      print('Error loading selected drugs: $e');
+    }
+  }
+
+  Future<File> _getLocalFile() async {
+    final directory = await getApplicationDocumentsDirectory();
+    debugPrint('${directory.path}');
+    return File('${directory.path}/selectedDrugs.json');
+  }
+
   void toggleSelection(DrugItem item) {
     final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
     if (index == -1) {
@@ -22,9 +64,16 @@ class SelectedDrugsModel extends ChangeNotifier {
     } else {
       selectedDrugs.removeAt(index);
     }
-
+    _saveSelectedDrugs();
     notifyListeners(); // 변경 사항을 구독자에게 알림
   }
+
+  void unselectDrug(DrugItem item) {
+    selectedDrugs.removeWhere((element) => element.itemSeq == item.itemSeq);
+    _saveSelectedDrugs();
+    notifyListeners();
+  }
+
 }
 
 class DrugItem {
@@ -57,7 +106,46 @@ class DrugItem {
     required this.updateDe,
     required this.itemImage,
     required this.bizrno,
+    required this.isSelected,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'entpName': entpName,
+      'itemName': itemName,
+      'itemSeq': itemSeq,
+      'efcyQesitm': efcyQesitm,
+      'useMethodQesitm': useMethodQesitm,
+      'atpnQesitm': atpnQesitm,
+      'intrcQesitm': intrcQesitm,
+      'seQesitm': seQesitm,
+      'depositMethodQesitm': depositMethodQesitm,
+      'openDe': openDe,
+      'updateDe': updateDe,
+      'itemImage': itemImage,
+      'bizrno': bizrno,
+      'isSelected': isSelected,
+    };
+  }
+
+  factory DrugItem.fromJson(Map<String, dynamic> json) {
+    return DrugItem(
+      entpName: json['entpName'],
+      itemName: json['itemName'],
+      itemSeq: json['itemSeq'],
+      efcyQesitm: json['efcyQesitm'],
+      useMethodQesitm: json['useMethodQesitm'],
+      atpnQesitm: json['atpnQesitm'],
+      intrcQesitm: json['intrcQesitm'],
+      seQesitm: json['seQesitm'],
+      depositMethodQesitm: json['depositMethodQesitm'],
+      openDe: json['openDe'],
+      updateDe: json['updateDe'],
+      itemImage: json['itemImage'],
+      bizrno: json['bizrno'],
+      isSelected : true,
+    );
+  }
 
   factory DrugItem.fromXml(xml.XmlElement element) {
     return DrugItem(
@@ -74,6 +162,7 @@ class DrugItem {
       updateDe: utf8.decode(element.getElement('updateDe')!.text.codeUnits) ?? '',
       itemImage: utf8.decode(element.getElement('itemImage')!.text.codeUnits) ?? '',
       bizrno: utf8.decode(element.getElement('bizrno')!.text.codeUnits) ?? '',
+      isSelected: false,
     );
   }
 }
@@ -246,7 +335,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         //Text('선택 여부: ${selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)}'),
                         ElevatedButton(
                           onPressed: () {
-                            selectedDrugsModel.toggleSelection(item);
+                            if (selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)) {
+                              // 이미 선택된 경우
+                              selectedDrugsModel.unselectDrug(item);
+                            } else {
+                              // 선택되지 않은 경우
+                              selectedDrugsModel.toggleSelection(item);
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             primary: selectedDrugsModel.selectedDrugs.any((selectedItem) => selectedItem.itemSeq == item.itemSeq)
