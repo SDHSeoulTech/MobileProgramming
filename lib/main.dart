@@ -299,6 +299,15 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             icon: Icon(Icons.search),
           ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AlarmSettingsScreen()),
+              );
+            },
+            icon: Icon(Icons.notifications), // 알람 설정 아이콘 또는 다른 아이콘으로 변경 가능
+          ),
         ],
       ),
       body: Center(
@@ -376,6 +385,44 @@ class _MyHomePageState extends State<MyHomePage> {
             backgroundColor: isLoading ? Colors.grey : null,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AlarmSettingsScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final selectedDrugsModel = context.watch<SelectedDrugsModel>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('알람 설정'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '선택한 약 목록',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: selectedDrugsModel.selectedDrugs.length,
+                itemBuilder: (context, index) {
+                  final drugItem = selectedDrugsModel.selectedDrugs[index];
+                  return ListTile(
+                    title: Text(drugItem.itemName),
+                    subtitle: Text(drugItem.entpName),
+                    // ... (기타 필요한 정보 표시)
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
