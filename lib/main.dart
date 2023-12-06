@@ -6,6 +6,7 @@ import 'package:xml/xml.dart' as xml;
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 String? key = dotenv.env['KEY'];
 
