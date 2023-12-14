@@ -439,7 +439,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class AlarmSettingsScreen extends StatelessWidget {
+class AlarmSettingsScreen extends StatefulWidget {
+  @override
+  _AlarmSettingsScreenState createState() => _AlarmSettingsScreenState();
+}
+
+class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
+  static const TimeOfDay unsetTime = TimeOfDay(hour: -1, minute: -1);
+
   @override
   Widget build(BuildContext context) {
     final selectedDrugsModel = context.watch<SelectedDrugsModel>();
@@ -468,35 +475,12 @@ class AlarmSettingsScreen extends StatelessWidget {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Checkbox(
-                          value: drugItem.isAlarmSet,
-                          onChanged: (value) {
-                            selectedDrugsModel.toggleAlarm(drugItem);
-                            if (value!) {
-                              // 알람을 설정하려는 경우 알람 시간 선택 다이얼로그 표시
-                              showTimePicker(
-                                context: context,
-                                initialTime: drugItem.alarmTime ?? TimeOfDay.now(),
-                              ).then((time) {
-                                if (time != null) {
-                                  selectedDrugsModel.setAlarmTime(drugItem, time);
-                                } else {
-                                  // 사용자가 시간 선택을 취소한 경우 알람 해제
-                                  selectedDrugsModel.toggleAlarm(drugItem);
-                                }
-                              });
-                            }
+                        ElevatedButton(
+                          onPressed: () {
+                            _showTimePickerDialog(context, selectedDrugsModel, drugItem);
                           },
+                          child: Text('알람 설정'),
                         ),
-                        Text('알람'),
-                        SizedBox(width: 16),
-                        Checkbox(
-                          value: drugItem.isTaken,
-                          onChanged: (value) {
-                            selectedDrugsModel.toggleTaken(drugItem);
-                          },
-                        ),
-                        Text('먹음'),
                       ],
                     ),
                   );
@@ -508,5 +492,50 @@ class AlarmSettingsScreen extends StatelessWidget {
       ),
     );
   }
-}
 
+  Future<void> _showTimePickerDialog(BuildContext context, SelectedDrugsModel selectedDrugsModel, DrugItem drugItem) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('알람 설정 - ${drugItem.itemName}'),
+        content: Column(
+          children: [
+            _buildTimePicker(context, drugItem, '아침', selectedDrugsModel),
+            _buildTimePicker(context, drugItem, '점심', selectedDrugsModel),
+            _buildTimePicker(context, drugItem, '저녁', selectedDrugsModel),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimePicker(BuildContext context, DrugItem drugItem, String mealType, SelectedDrugsModel selectedDrugsModel) {
+    return Row(
+      children: [
+        Checkbox(
+          value: drugItem.isAlarmSet && drugItem.alarmTime != unsetTime,
+          onChanged: (value) {
+            if (value!) {
+              _showTimePicker(context, drugItem, mealType, selectedDrugsModel);
+            } else {
+              selectedDrugsModel.setAlarmTime(drugItem, unsetTime); // Unset time
+            }
+          },
+        ),
+        Text('$mealType 알람 설정'),
+      ],
+    );
+  }
+
+  Future<void> _showTimePicker(BuildContext context, DrugItem drugItem, String mealType, SelectedDrugsModel selectedDrugsModel) async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: drugItem.alarmTime ?? TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      final updatedTime = TimeOfDay(hour: pickedTime.hour, minute: pickedTime.minute);
+      selectedDrugsModel.setAlarmTime(drugItem, updatedTime);
+    }
+  }
+}
