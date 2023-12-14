@@ -10,6 +10,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 String? key = dotenv.env['KEY'];
 
+
+
 void main() async {
   await dotenv.load(fileName: 'assets/config/.env');
   runApp(MyApp());
@@ -74,6 +76,22 @@ class SelectedDrugsModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleAlarm(DrugItem item) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index != -1) {
+      selectedDrugs[index].isAlarmSet = !selectedDrugs[index].isAlarmSet;
+      notifyListeners();
+    }
+  }
+
+  void setAlarmTime(DrugItem item, TimeOfDay time) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index != -1) {
+      selectedDrugs[index].alarmTime = time;
+      notifyListeners();
+    }
+  }
+
 }
 
 class DrugItem {
@@ -91,6 +109,8 @@ class DrugItem {
   final String itemImage;
   final String bizrno;
   bool isSelected = false;
+  bool isAlarmSet = false;
+  TimeOfDay? alarmTime;
 
   DrugItem({
     required this.entpName,
@@ -107,6 +127,8 @@ class DrugItem {
     required this.itemImage,
     required this.bizrno,
     required this.isSelected,
+    required isAlarmSet,
+    TimeOfDay? alarmTime,
   });
 
   Map<String, dynamic> toJson() {
@@ -125,6 +147,8 @@ class DrugItem {
       'itemImage': itemImage,
       'bizrno': bizrno,
       'isSelected': isSelected,
+      'isAlarmSet': isAlarmSet,
+      'alarmTime': alarmTime != null ? {'hour': alarmTime!.hour, 'minute': alarmTime!.minute} : null,
     };
   }
 
@@ -144,6 +168,10 @@ class DrugItem {
       itemImage: json['itemImage'],
       bizrno: json['bizrno'],
       isSelected : true,
+      isAlarmSet: json['isAlarmSet'] ?? false,
+      alarmTime: json['alarmTime'] != null
+        ? TimeOfDay(hour: json['alarmTime']['hour'], minute: json['alarmTime']['minute'])
+          : null,
     );
   }
 
@@ -163,6 +191,8 @@ class DrugItem {
       itemImage: utf8.decode(element.getElement('itemImage')!.text.codeUnits) ?? '',
       bizrno: utf8.decode(element.getElement('bizrno')!.text.codeUnits) ?? '',
       isSelected: false,
+      isAlarmSet: false,
+      alarmTime: null,
     );
   }
 }
@@ -361,6 +391,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ? '약품 해제' // 선택된 경우 버튼 텍스트를 '약품 해제'로 변경
                               : '약품 선택'), // 선택되지 않은 경우 기본 버튼 텍스트 사용
                         ),
+
                       ],
                      ),
                     );
@@ -417,7 +448,26 @@ class AlarmSettingsScreen extends StatelessWidget {
                   return ListTile(
                     title: Text(drugItem.itemName),
                     subtitle: Text(drugItem.entpName),
-                    // ... (기타 필요한 정보 표시)
+                    trailing: Checkbox(
+                      value: drugItem.isAlarmSet,
+                      onChanged: (value) {
+                        selectedDrugsModel.toggleAlarm(drugItem);
+                        if (value!) {
+                          // 알람을 설정하려는 경우 알람 시간 선택 다이얼로그 표시
+                          showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          ).then((time) {
+                            if (time != null) {
+                              selectedDrugsModel.setAlarmTime(drugItem, time);
+                            } else {
+                              // 사용자가 시간 선택을 취소한 경우 알람 해제
+                              selectedDrugsModel.toggleAlarm(drugItem);
+                            }
+                          });
+                        }
+                      },
+                    ),
                   );
                 },
               ),
