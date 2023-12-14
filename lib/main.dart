@@ -83,10 +83,26 @@ class SelectedDrugsModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleAlarm(DrugItem item) {
+  void toggleMorningAlarm(DrugItem item) {
     final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
     if (index != -1) {
-      selectedDrugs[index].isAlarmSet = !selectedDrugs[index].isAlarmSet;
+      selectedDrugs[index].isMorningAlarmSet = !selectedDrugs[index].isMorningAlarmSet;
+      notifyListeners();
+    }
+  }
+
+  void toggleLunchAlarm(DrugItem item) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index != -1) {
+      selectedDrugs[index].isLunchAlarmSet = !selectedDrugs[index].isLunchAlarmSet;
+      notifyListeners();
+    }
+  }
+
+  void toggleDinnerAlarm(DrugItem item) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index != -1) {
+      selectedDrugs[index].isDinnerAlarmSet = !selectedDrugs[index].isDinnerAlarmSet;
       notifyListeners();
     }
   }
@@ -97,16 +113,20 @@ class SelectedDrugsModel extends ChangeNotifier {
       switch (mealType) {
         case '아침':
           selectedDrugs[index].morningAlarmTime = time;
+          selectedDrugs[index].isMorningAlarmSet = true;
           break;
         case '점심':
           selectedDrugs[index].lunchAlarmTime = time;
+          selectedDrugs[index].isLunchAlarmSet = true;
           break;
         case '저녁':
           selectedDrugs[index].dinnerAlarmTime = time;
+          selectedDrugs[index].isDinnerAlarmSet = true;
           break;
         default:
           break;
       }
+      _saveSelectedDrugs();
       notifyListeners();
     }
   }
@@ -129,7 +149,9 @@ class DrugItem {
   final String itemImage;
   final String bizrno;
   bool isSelected = false;
-  bool isAlarmSet = false;
+  bool isMorningAlarmSet = false;
+  bool isLunchAlarmSet = false;
+  bool isDinnerAlarmSet = false;
   TimeOfDay? morningAlarmTime; // 아침 알람 시간
   TimeOfDay? lunchAlarmTime;   // 점심 알람 시간
   TimeOfDay? dinnerAlarmTime;  // 저녁 알람 시간
@@ -150,7 +172,9 @@ class DrugItem {
     required this.itemImage,
     required this.bizrno,
     required this.isSelected,
-    required isAlarmSet,
+    required this.isMorningAlarmSet,
+    required this.isLunchAlarmSet,
+    required this.isDinnerAlarmSet,
     required this.morningAlarmTime,
     required this.lunchAlarmTime,
     required this.dinnerAlarmTime,
@@ -173,7 +197,9 @@ class DrugItem {
       'itemImage': itemImage,
       'bizrno': bizrno,
       'isSelected': isSelected,
-      'isAlarmSet': isAlarmSet,
+      'isMorningAlarmSet': isMorningAlarmSet,
+      'isLunchAlarmSet': isLunchAlarmSet,
+      'isDinnerAlarmSet': isDinnerAlarmSet,
       'morningAlarmTime': morningAlarmTime != null
           ? {'hour': morningAlarmTime!.hour, 'minute': morningAlarmTime!.minute}
           : null,
@@ -203,7 +229,9 @@ class DrugItem {
       itemImage: json['itemImage'],
       bizrno: json['bizrno'],
       isSelected : true,
-      isAlarmSet: json['isAlarmSet'] ?? false,
+      isMorningAlarmSet: json['isMorningAlarmSet'] ?? false,
+      isLunchAlarmSet: json['isLunchAlarmSet'] ?? false,
+      isDinnerAlarmSet: json['isDinnerAlarmSet'] ?? false,
       morningAlarmTime: json['morningAlarmTime'] != null
           ? TimeOfDay(hour: json['morningAlarmTime']['hour'], minute: json['morningAlarmTime']['minute'])
           : null,
@@ -233,7 +261,9 @@ class DrugItem {
       itemImage: utf8.decode(element.getElement('itemImage')!.text.codeUnits) ?? '',
       bizrno: utf8.decode(element.getElement('bizrno')!.text.codeUnits) ?? '',
       isSelected: false,
-      isAlarmSet: false,
+      isMorningAlarmSet: false,
+      isLunchAlarmSet: false,
+      isDinnerAlarmSet: false,
       morningAlarmTime: null,
       lunchAlarmTime: null,
       dinnerAlarmTime: null,
@@ -536,9 +566,12 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
             title: Text('알람 설정 - ${drugItem.itemName}'),
             content: Column(
               children: [
-                _buildTimePicker(context, drugItem, '아침', selectedDrugsModel, unsetTime),
-                _buildTimePicker(context, drugItem, '점심', selectedDrugsModel, unsetTime),
-                _buildTimePicker(context, drugItem, '저녁', selectedDrugsModel, unsetTime),
+                _buildTimePicker(
+                    context, drugItem, '아침', selectedDrugsModel, drugItem.morningAlarmTime),
+                _buildTimePicker(
+                    context, drugItem, '점심', selectedDrugsModel, drugItem.lunchAlarmTime),
+                _buildTimePicker(
+                    context, drugItem, '저녁', selectedDrugsModel, drugItem.dinnerAlarmTime),
               ],
             ),
           ),
@@ -548,17 +581,47 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
   Widget _buildTimePicker(BuildContext context, DrugItem drugItem,
       String mealType, SelectedDrugsModel selectedDrugsModel,
       TimeOfDay? initialTime) {
+    bool isAlarmSet;
+    switch (mealType) {
+      case '아침':
+        isAlarmSet = drugItem.isMorningAlarmSet;
+        break;
+      case '점심':
+        isAlarmSet = drugItem.isLunchAlarmSet;
+        break;
+      case '저녁':
+        isAlarmSet = drugItem.isDinnerAlarmSet;
+        break;
+      default:
+        isAlarmSet = false;
+        break;
+    }
+
     return Row(
       children: [
         Checkbox(
-          value: drugItem.isAlarmSet && initialTime != null &&
-              initialTime != unsetTime,
+          value: isAlarmSet && initialTime != null && initialTime != unsetTime,
           onChanged: (value) {
             if (value!) {
               _showTimePicker(
                   context, drugItem, mealType, selectedDrugsModel, initialTime);
             } else {
-              selectedDrugsModel.setAlarmTime(drugItem, mealType, unsetTime);
+              switch (mealType) {
+                case '아침':
+                  selectedDrugsModel.setAlarmTime(
+                      drugItem, mealType, initialTime!);
+                  break;
+                case '점심':
+                  selectedDrugsModel.setAlarmTime(
+                      drugItem, mealType, initialTime!);
+                  break;
+                case '저녁':
+                  selectedDrugsModel.setAlarmTime(
+                      drugItem, mealType, initialTime!);
+                  break;
+                default:
+                  break;
+              }
             }
           },
         ),
@@ -566,6 +629,7 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
       ],
     );
   }
+
 
   Future<void> _showTimePicker(BuildContext context, DrugItem drugItem,
       String mealType, SelectedDrugsModel selectedDrugsModel,
@@ -578,7 +642,21 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
     if (pickedTime != null) {
       final updatedTime = TimeOfDay(
           hour: pickedTime.hour, minute: pickedTime.minute);
-      selectedDrugsModel.setAlarmTime(drugItem, mealType, updatedTime);
+
+      switch (mealType) {
+        case '아침':
+          selectedDrugsModel.setAlarmTime(drugItem, mealType, updatedTime);
+          break;
+        case '점심':
+          selectedDrugsModel.setAlarmTime(drugItem, mealType, updatedTime);
+          break;
+        case '저녁':
+          selectedDrugsModel.setAlarmTime(drugItem, mealType, updatedTime);
+          break;
+        default:
+          break;
+      }
     }
   }
 }
+
