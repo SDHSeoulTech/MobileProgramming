@@ -606,33 +606,11 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
               _showTimePicker(
                   context, drugItem, mealType, selectedDrugsModel, initialTime);
             } else {
-              switch (mealType) {
-                case '아침':
-                  selectedDrugsModel.setAlarmTime(
-                      drugItem, mealType, unsetTime);
-                  break;
-                case '점심':
-                  selectedDrugsModel.setAlarmTime(
-                      drugItem, mealType, unsetTime);
-                  break;
-                case '저녁':
-                  selectedDrugsModel.setAlarmTime(
-                      drugItem, mealType, unsetTime);
-                  break;
-                default:
-                  break;
-              }
+              _removeAlarm(context, drugItem, mealType, selectedDrugsModel);
             }
           },
         ),
         Text('$mealType 알람 설정'),
-        SizedBox(width: 16),
-        ElevatedButton(
-          onPressed: () {
-            _removeAlarm(context, drugItem, mealType, selectedDrugsModel);
-          },
-          child: Text('알람 해제'),
-        ),
       ],
     );
   }
@@ -653,6 +631,9 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
         break;
     }
     Navigator.pop(context); // 다이얼로그를 닫습니다.
+    _showTimePickerDialog(
+    context, selectedDrugsModel, drugItem,
+    );
   }
 
   Future<void> _showTimePicker(BuildContext context, DrugItem drugItem,
