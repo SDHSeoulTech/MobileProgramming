@@ -24,6 +24,13 @@ class SelectedDrugsModel extends ChangeNotifier {
     _loadSelectedDrugs();
   }
 
+  void toggleTaken(DrugItem item) {
+    final index = selectedDrugs.indexWhere((element) => element.itemSeq == item.itemSeq);
+    if (index != -1) {
+      selectedDrugs[index].toggleTaken();
+      notifyListeners();
+    }
+  }
 
   void _saveSelectedDrugs() async {
     final file = await _getLocalFile();
@@ -111,6 +118,7 @@ class DrugItem {
   bool isSelected = false;
   bool isAlarmSet = false;
   TimeOfDay? alarmTime;
+  bool isTaken;
 
   DrugItem({
     required this.entpName,
@@ -129,6 +137,7 @@ class DrugItem {
     required this.isSelected,
     required isAlarmSet,
     TimeOfDay? alarmTime,
+    required this.isTaken,
   });
 
   Map<String, dynamic> toJson() {
@@ -149,6 +158,7 @@ class DrugItem {
       'isSelected': isSelected,
       'isAlarmSet': isAlarmSet,
       'alarmTime': alarmTime != null ? {'hour': alarmTime!.hour, 'minute': alarmTime!.minute} : null,
+      'isTaken': isTaken,
     };
   }
 
@@ -172,6 +182,7 @@ class DrugItem {
       alarmTime: json['alarmTime'] != null
         ? TimeOfDay(hour: json['alarmTime']['hour'], minute: json['alarmTime']['minute'])
           : null,
+      isTaken: json['isTaken'] ?? false,
     );
   }
 
@@ -193,8 +204,14 @@ class DrugItem {
       isSelected: false,
       isAlarmSet: false,
       alarmTime: null,
+      isTaken: false
     );
   }
+
+  void toggleTaken() {
+    isTaken = !isTaken;
+  }
+
 }
 
 class MyApp extends StatelessWidget {
@@ -448,25 +465,39 @@ class AlarmSettingsScreen extends StatelessWidget {
                   return ListTile(
                     title: Text(drugItem.itemName),
                     subtitle: Text(drugItem.entpName),
-                    trailing: Checkbox(
-                      value: drugItem.isAlarmSet,
-                      onChanged: (value) {
-                        selectedDrugsModel.toggleAlarm(drugItem);
-                        if (value!) {
-                          // 알람을 설정하려는 경우 알람 시간 선택 다이얼로그 표시
-                          showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          ).then((time) {
-                            if (time != null) {
-                              selectedDrugsModel.setAlarmTime(drugItem, time);
-                            } else {
-                              // 사용자가 시간 선택을 취소한 경우 알람 해제
-                              selectedDrugsModel.toggleAlarm(drugItem);
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: drugItem.isAlarmSet,
+                          onChanged: (value) {
+                            selectedDrugsModel.toggleAlarm(drugItem);
+                            if (value!) {
+                              // 알람을 설정하려는 경우 알람 시간 선택 다이얼로그 표시
+                              showTimePicker(
+                                context: context,
+                                initialTime: drugItem.alarmTime ?? TimeOfDay.now(),
+                              ).then((time) {
+                                if (time != null) {
+                                  selectedDrugsModel.setAlarmTime(drugItem, time);
+                                } else {
+                                  // 사용자가 시간 선택을 취소한 경우 알람 해제
+                                  selectedDrugsModel.toggleAlarm(drugItem);
+                                }
+                              });
                             }
-                          });
-                        }
-                      },
+                          },
+                        ),
+                        Text('알람'),
+                        SizedBox(width: 16),
+                        Checkbox(
+                          value: drugItem.isTaken,
+                          onChanged: (value) {
+                            selectedDrugsModel.toggleTaken(drugItem);
+                          },
+                        ),
+                        Text('먹음'),
+                      ],
                     ),
                   );
                 },
@@ -478,3 +509,4 @@ class AlarmSettingsScreen extends StatelessWidget {
     );
   }
 }
+
