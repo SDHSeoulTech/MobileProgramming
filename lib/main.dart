@@ -283,6 +283,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => SelectedDrugsModel(), // SelectedDrugsModel을 프로바이더로 등록
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'Flutter XML API Example',
         home: MyHomePage(),
       ),
